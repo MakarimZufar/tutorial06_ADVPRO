@@ -16,4 +16,13 @@ Pada tahap ini, kita telah membuat fungsi handle_connection yang berfungsi untuk
 
 ## Commit 2: Returning HTML”, push it to your git repository server
 
-Kami menambahkan variabel status_line untuk memberi tahu browser bahwa request berhasil diproses dengan kode status 200 OK. Kemudian, menggunakan fs::read_to_string(), saya membaca isi dari file HTML yang akan dikirim sebagai respons, sehingga halaman dapat ditampilkan di browser. Selain itu, saya juga menambahkan header Content-Length untuk memberi tahu browser berapa banyak data yang akan diterima, agar proses rendering berjalan dengan lancar. Terakhir, dengan menggunakan stream.write_all(response.as_bytes()).unwrap();, saya mengirimkan respons dalam bentuk byte ke browser, memastikan halaman HTML dapat diterima dan ditampilkan dengan benar. Dengan cara ini, server kami sekarang bisa menangani request dan mengirimkan file hello.html sebagai respons.
+```rust
+let status_line = "HTTP/1.1 200 OK";
+let contents = fs::read_to_string("hello.html").unwrap();
+let length = contents.len();
+let response = format!("{status_line}\r\nContent-Length:{length}\r\n\r\n{contents}");
+stream.write_all(response.as_bytes()).unwrap();
+```
+
+pada kode diatas saya menambahkan variabel `status_line` untuk memberi tahu browser bahwa request berhasil diproses dengan kode status 200 OK. Kemudian, menggunakan `fs::read_to_string()`, saya membaca isi dari file HTML yang akan dikirim sebagai respons, sehingga halaman dapat ditampilkan di browser. Selain itu, saya juga menambahkan header Content-Length untuk memberi tahu browser berapa banyak data yang akan diterima, agar proses rendering berjalan dengan lancar. Terakhir, dengan menggunakan stream.`write_all(response.as_bytes()).unwrap();`, saya mengirimkan respons dalam bentuk byte ke browser, memastikan halaman HTML dapat diterima dan ditampilkan dengan benar. Dengan cara ini, server kami sekarang bisa menangani request dan mengirimkan file `hello.html` sebagai respons.
+![hello-html-screenshot](https://github.com/MakarimZufar/tutorial06_ADVPRO/blob/master/README-image/hello.png)

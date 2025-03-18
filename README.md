@@ -42,3 +42,18 @@ let (status_line, filename) =
 Pada tahap ini, server kita sudah dapat membedakan antara request yang valid dan yang tidak. Ketika pengguna mengakses "/", server akan mengirimkan file `hello.html` dengan status 200 OK. Namun, jika pengguna mengakses path yang tidak dikenali, server akan mengembalikan file `404.htm`l dengan status 404 NOT FOUND. Untuk mencapai hal ini, kita menambahkan kondisi if-else yang berfungsi untuk memverifikasi apakah path yang diminta valid atau tidak. Jika path valid, server akan mengirimkan file `hello.html` sebagai respons, sedangkan jika tidak valid, server akan mengirimkan file `404.html`. Selain itu, kita juga telah melakukan refactor pada kode, karena versi sebelumnya masih mengandung redundansi pada bagian if-else.
 
 ![404_html_screenshot](https://github.com/MakarimZufar/tutorial06_ADVPRO/blob/master/README-image/404.png)
+
+## Commit 4: Simulation of slow request
+
+```rust
+let (status_line, filename) = match &request_line[..] { 
+    "GET / HTTP/1.1" => ("HTTP/1.1 200 OK", "hello.html"), 
+    "GET /sleep HTTP/1.1" => { 
+        thread::sleep(Duration::from_secs(10)); 
+        ("HTTP/1.1 200 OK", "hello.html") 
+    } 
+    _ => ("HTTP/1.1 404 NOT FOUND", "404.html"), 
+}; 
+```
+Dari kode yang kita tambahkan di atas kita bisa mensimulasikan kondisi di mana ketika pengguna mengakses endpoint /sleep, mereka harus menunggu selama 10 detik. Tentu saja, ini akan mempengaruhi keterlambatan dalam menangani request lainnya pada waktu yang bersamaan. Hal ini terjadi karena server kita masih berjalan di dalam satu thread, yang artinya hanya bisa menangani satu request pada satu waktu. Jika banyak pengguna mengakses server secara bersamaan, mereka harus menunggu giliran mereka, yang menyebabkan server terlihat lebih lambat dan kurang responsif. Menurut saya, ini menunjukkan kekurangan dari server yang berjalan di satu thread.
+

@@ -57,3 +57,44 @@ let (status_line, filename) = match &request_line[..] {
 ```
 Dari kode yang kita tambahkan di atas kita bisa mensimulasikan kondisi di mana ketika pengguna mengakses endpoint /sleep, mereka harus menunggu selama 10 detik. Tentu saja, ini akan mempengaruhi keterlambatan dalam menangani request lainnya pada waktu yang bersamaan. Hal ini terjadi karena server kita masih berjalan di dalam satu thread, yang artinya hanya bisa menangani satu request pada satu waktu. Jika banyak pengguna mengakses server secara bersamaan, mereka harus menunggu giliran mereka, yang menyebabkan server terlihat lebih lambat dan kurang responsif. Menurut saya, ini menunjukkan kekurangan dari server yang berjalan di satu thread.
 
+## commit 5: Multithreaded server using Threadpool 
+
+```rust
+fn main() {
+    let listener = TcpListener::bind("127.0.0.1:7878").unwrap();
+    let pool = ThreadPool::new(4);
+
+    for stream in listener.incoming() {
+        let stream = stream.unwrap();
+
+        pool.execute(|| {
+            handle_connection(stream);
+        });
+    }
+}
+```
+
+Untuk mengatasi masalah yang terjadi pada commit ke-4, kita dapat mengimplementasikan ThreadPool untuk mengubah server menjadi server multithreaded, yang memungkinkan server untuk menangani beberapa request secara bersamaan. Dengan menggunakan ThreadPool, kita dapat membagi tugas ke beberapa worker yang berjalan secara paralel, sehingga setiap request tidak perlu menunggu request lain selesai terlebih dahulu. Setiap worker dalam ThreadPool akan mengambil tugas dari antrian dan menjalankannya secara terpisah, menjadikan server lebih responsif. Dengan pendekatan ini, jika ada request yang membutuhkan waktu lama untuk diproses, worker lain yang kosong masih dapat menangani request baru tanpa menunggu. Selain itu, penggunaan Arc dan Mutex memastikan bahwa hanya satu worker yang dapat mengakses tugas pada satu waktu, menghindari adanya konflik antar worker. Dengan cara ini, kita dapat menyelesaikan masalah yang muncul pada server yang berjalan dalam satu thread.
+
+```rust
+struct Worker {
+    id: usize,
+    thread: thread::JoinHandle<()>,
+}
+
+impl Worker {
+    fn new(id: usize, receiver: Arc<Mutex<mpsc::Receiver<Job>>>) -> Worker {
+        let thread = thread::spawn(move || loop {
+            let job = receiver.lock().unwrap().recv().unwrap();
+
+            println!("Worker {id} got a job; executing.");
+
+            job();
+        });
+
+        Worker { id, thread }
+    }
+}
+```
+
+Instance dari ThreadPool akan dibuat di dalam fungsi main. Setelah itu, setiap request akan dimasukkan ke dalam antrian, dan worker yang sedang tidak aktif dalam ThreadPool akan mengambil dan memproses request tersebut tanpa harus menunggu request lain selesai.
